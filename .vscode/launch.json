@@ -1,0 +1,84 @@
+{
+    "configurations": [
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:hifconverter}",
+            "name": "Debug hif-spike",
+            "target": "hif-spike",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug hif-spike"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:hifconverter}",
+            "name": "Release hif-spike",
+            "target": "hif-spike",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release hif-spike"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:hifconverter}",
+            "name": "Debug hif-spike-check",
+            "target": "hif-spike-check",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug hif-spike-check"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:hifconverter}",
+            "name": "Release hif-spike-check",
+            "target": "hif-spike-check",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release hif-spike-check"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:hifconverter}",
+            "name": "Debug hifconvert",
+            "target": "hifconvert",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug hifconvert"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:hifconverter}",
+            "name": "Release hifconvert",
+            "target": "hifconvert",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release hifconvert"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:hifconverter}",
+            "name": "Debug hifconvert-check",
+            "target": "hifconvert-check",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug hifconvert-check"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:hifconverter}",
+            "name": "Release hifconvert-check",
+            "target": "hifconvert-check",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release hifconvert-check"
+        }
+    ]
+}
