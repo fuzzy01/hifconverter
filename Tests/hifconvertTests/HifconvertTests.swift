@@ -401,8 +401,9 @@ private func sdrHdrPair(_ check: Check) throws {
     check.expect(abs(white - gain) < max(0.25, gain * 0.15), "HDR reference white \(white)")
     check.expect(highlight > 1, "HDR highlight \(highlight)")
     check.expect(abs(highlight - Convert.nominalHeadroom * gain) < max(0.7, Convert.nominalHeadroom * gain * 0.12), "HDR highlight near lifted peak, got \(highlight)")
-    check.expect(abs(sdrWhite - 1) < 0.08, "SDR reference white \(sdrWhite)")
-    check.expect(abs(sdrHighlight - 1) < 0.08, "SDR highlight \(sdrHighlight)")
+    check.expect(sdrWhite <= 1.05, "SDR reference white \(sdrWhite)")
+    check.expect(sdrWhite < white, "tone map compresses reference white \(sdrWhite) vs \(white)")
+    check.expect(abs(sdrHighlight - 1) < 0.12, "SDR highlight \(sdrHighlight)")
 
     let flat = try Convert.pair(from: ramp, shoulder: .standard, lift: 0)
     let flatWhite = pixel(flat.hdr, x: 16, y: 16, context: context, space: space)

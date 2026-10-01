@@ -3,16 +3,16 @@ import Foundation
 import ImageIO
 
 enum Shoulder: Equatable {
-    /// One content headroom for every frame: the 1000 cd/m² HLG peak.
+    /// One tone-map headroom for every frame: the 1000 cd/m² HLG peak.
     case standard
-    /// Content headroom follows this frame, clamped to 1.5...the nominal peak.
+    /// Tone-map headroom follows this frame, clamped to 1.5...the nominal peak.
     case matchFrame
 }
 
 struct HDRPair {
     /// Extended-linear Display P3 after the exposure lift. Highlights sit above 1.
     var hdr: CIImage
-    /// The same picture clipped at 1, so middle grey survives in the SDR base.
+    /// The same picture tone-mapped to headroom 1.
     var sdr: CIImage
     var sourceHeadroom: Double
 }
@@ -31,7 +31,7 @@ enum Convert {
     /// 1000 cd/m² peak divided by the 203 cd/m² reference white.
     static let nominalHeadroom = 1000.0 / 203.0
     /// Stops added when `--lift` is omitted.
-    static let defaultLift = 1.5
+    static let defaultLift = 0.5
     /// Linear multiplier for `defaultLift`.
     static var exposureGain: Double { gain(forLift: defaultLift) }
 
@@ -83,10 +83,8 @@ enum Convert {
         // Judge headroom after the lift, so a frame that crosses SDR white gets a gain map.
         guard measured * gain > 1.02 else { throw ConvertError.noHeadroom }
         let hdr = try extendedDisplayP3(image, extent: extent, context: context, gain: gain)
-        // A tone map at the HLG peak pulls a lifted 0.18 card back to ~0.10.
-        // Clip the base at 1 and leave the highlights in `hdr`.
         let source = sourceHeadroom(measuredPeak: measured, shoulder: shoulder, peakNits: peakNits) * gain
-        let sdr = try clipToWhite(hdr)
+        let sdr = try toneMap(hdr, sourceHeadroom: source)
         return HDRPair(hdr: hdr, sdr: sdr, sourceHeadroom: source)
     }
 
@@ -162,13 +160,13 @@ enum Convert {
         return try bitmap(image, extent: extent, colorSpace: space, context: context, gain: gain)
     }
 
-    private static func clipToWhite(_ image: CIImage) throws -> CIImage {
-        guard let filter = CIFilter(name: "CIColorClamp") else { throw ConvertError.noHeadroom }
-        filter.setValue(image, forKey: kCIInputImageKey)
-        filter.setValue(CIVector(x: 0, y: 0, z: 0, w: 0), forKey: "inputMinComponents")
-        filter.setValue(CIVector(x: 1, y: 1, z: 1, w: 1), forKey: "inputMaxComponents")
+    private static func toneMap(_ hdr: CIImage, sourceHeadroom: Double) throws -> CIImage {
+        guard let filter = CIFilter(name: "CIToneMapHeadroom") else { throw ConvertError.noHeadroom }
+        filter.setValue(hdr, forKey: kCIInputImageKey)
+        filter.setValue(sourceHeadroom, forKey: "inputSourceHeadroom")
+        filter.setValue(1.0, forKey: "inputTargetHeadroom")
         guard let output = filter.outputImage else { throw ConvertError.noHeadroom }
-        return output.cropped(to: image.extent)
+        return output.cropped(to: hdr.extent)
     }
 
     /// 99.9th percentile of the per-pixel max channel, on a small render.
