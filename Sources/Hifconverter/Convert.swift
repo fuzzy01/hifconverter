@@ -2,7 +2,7 @@ import CoreImage
 import Foundation
 import ImageIO
 
-enum Shoulder: Equatable {
+enum Shoulder: Equatable, Hashable, Sendable {
     /// One tone-map headroom for every frame: the 1000 cd/m² HLG peak.
     case standard
     /// Tone-map headroom follows this frame, clamped to 1.5...the nominal peak.
@@ -46,6 +46,15 @@ enum Convert {
         lift: Double = defaultLift
     ) throws -> Picture {
         guard let image = decode(data) else { throw ConvertError.noHeadroom }
+        return try picture(from: image, shoulder: shoulder, peakNits: peakNits, lift: lift)
+    }
+
+    static func picture(
+        from image: CIImage,
+        shoulder: Shoulder = .standard,
+        peakNits: Double = HLGFormula.defaultPeakNits,
+        lift: Double = defaultLift
+    ) throws -> Picture {
         do {
             return .hdr(try pair(from: image, shoulder: shoulder, peakNits: peakNits, lift: lift))
         } catch ConvertError.noHeadroom {

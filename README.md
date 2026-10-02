@@ -53,3 +53,15 @@ swift run hifconvert-check
 ```
 
 Prints `ok` when the conversion checks pass. This package runs those checks as an executable because the Command Line Tools do not include XCTest.
+
+## App
+
+`HIFConverter` is a window on the same converter. Drop HIF files or a folder, or use Open. Clear empties the queue while a conversion is not running. The queue converts one file at a time. Cancel stops after the file already in progress. The preview is a small render of the SDR base and the HDR picture, using the same lift and tone map as the file that will be written.
+
+```sh
+swift build
+./Scripts/make-app.sh
+open HIFConverter.app
+```
+
+Settings match the command-line flags: lift, peak, shoulder, quality, and what to do when the HEIC already exists. Output defaults to the folder the HIF is in. Set defaults restores those values. Convert is Command-R. Cancel stops after the file already in progress.

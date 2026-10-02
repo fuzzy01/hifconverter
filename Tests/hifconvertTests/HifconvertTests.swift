@@ -19,6 +19,7 @@ struct HifconvertCheck {
             try orientationTurnsPixels(check)
             try stillWithoutHeadroom(check)
             try batchCommand(check)
+            try appQueue(check)
         } catch {
             check.fail("\(error)")
         }
@@ -109,6 +110,63 @@ private func batchCommand(_ check: Check) throws {
     check.expect(suffixed.status == 0, "suffix status \(suffixed.status) \(suffixed.stdout)")
     check.expect(suffixed.stdout.contains("DSC0001 HDR.heic"), suffixed.stdout)
     check.expect(Encode.hasISOGainMap(at: out.appendingPathComponent("DSC0001 HDR.heic")), "suffix gain map")
+}
+
+private func appQueue(_ check: Check) throws {
+    let directory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("hif-app-\(UUID().uuidString)", isDirectory: true)
+    let card = directory.appendingPathComponent("card", isDirectory: true)
+    let out = directory.appendingPathComponent("out", isDirectory: true)
+    try FileManager.default.createDirectory(at: card, withIntermediateDirectories: true)
+    try FileManager.default.createDirectory(at: out, withIntermediateDirectories: true)
+    defer { try? FileManager.default.removeItem(at: directory) }
+
+    let hif = card.appendingPathComponent("DSC0001.HIF")
+    try writeStampedHIF(hif)
+    let flat = card.appendingPathComponent("flat.HIF")
+    let srgb = CGColorSpace(name: CGColorSpace.sRGB)!
+    let color = CIImage(color: CIColor(red: 0.2, green: 0.4, blue: 0.6)).cropped(to: CGRect(x: 0, y: 0, width: 32, height: 16))
+    try CIContext(options: [.cacheIntermediates: false]).writeHEIFRepresentation(
+        of: color, to: flat, format: .RGBA8, colorSpace: srgb, options: [:]
+    )
+    let note = directory.appendingPathComponent("note.jpg")
+    try Data("nope".utf8).write(to: note)
+
+    let queued = ConversionQueue.files(from: [card, note])
+    check.expect(queued.map(\.lastPathComponent).sorted() == ["DSC0001.HIF", "flat.HIF", "note.jpg"], "queued \(queued)")
+    let size = ConversionQueue.pixelSize(of: hif)
+    check.expect(size?.width == 32 && size?.height == 16, "pixel size \(String(describing: size))")
+
+    var settings = ConversionSettings()
+    settings.outputDirectory = out
+    let written = ConversionQueue.convert(hif, settings: settings)
+    guard case .written(let output, true) = written else {
+        check.fail("expected a gain-map HEIC, got \(written.label)")
+        return
+    }
+    check.expect(FileManager.default.fileExists(atPath: output.path), "HEIC exists")
+    check.expect(written.label.contains("DSC0001.heic"), written.label)
+
+    let collision = ConversionQueue.convert(hif, settings: settings)
+    guard case .failed(let reason) = collision else {
+        check.fail("expected a collision, got \(collision.label)")
+        return
+    }
+    check.expect(reason.contains("already exists"), reason)
+
+    let other = ConversionQueue.convert(note, settings: settings)
+    check.expect(other.label == "failed not a HIF", other.label)
+
+    let still = ConversionQueue.convert(flat, settings: settings)
+    guard case .written(_, false) = still else {
+        check.fail("expected a still HEIC, got \(still.label)")
+        return
+    }
+    check.expect(still.label.contains("no gain map"), still.label)
+
+    let preview = ConversionQueue.preview(of: hif, settings: settings, maxSide: 32)
+    check.expect(preview?.hdr != nil, "preview has an HDR image")
+    check.expect((preview?.headroom ?? 0) > 1, "preview headroom \(preview?.headroom ?? -1)")
 }
 
 private func writeStampedHIF(_ url: URL) throws {

@@ -1,6 +1,6 @@
 import Foundation
 
-enum Collision: Equatable {
+enum Collision: Equatable, Hashable, Sendable {
     /// An existing HEIC stops the job. The name is in the error.
     case fail
     /// An existing HEIC gets a sibling named `Name HDR.heic`.

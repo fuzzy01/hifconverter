@@ -133,7 +133,7 @@ enum Hifconvert {
         return canonical(parent).appendingPathComponent(url.lastPathComponent)
     }
 
-    private static func hifFiles(under directory: URL) -> [URL] {
+    static func hifFiles(under directory: URL) -> [URL] {
         guard let enumerator = FileManager.default.enumerator(
             at: directory,
             includingPropertiesForKeys: [.isRegularFileKey],
@@ -219,7 +219,7 @@ enum Hifconvert {
         return args[index]
     }
 
-    private static func reason(_ error: Error) -> String {
+    static func reason(_ error: Error) -> String {
         switch error {
         case ExportError.sameAsSource:
             return "output is the source file"
