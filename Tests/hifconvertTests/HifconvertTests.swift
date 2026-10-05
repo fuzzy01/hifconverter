@@ -166,7 +166,19 @@ private func appQueue(_ check: Check) throws {
 
     let preview = ConversionQueue.preview(of: hif, settings: settings, maxSide: 32)
     check.expect(preview?.hdr != nil, "preview has an HDR image")
-    check.expect((preview?.headroom ?? 0) > 1, "preview headroom \(preview?.headroom ?? -1)")
+    guard let data = try? Data(contentsOf: hif), let image = Convert.decode(data) else {
+        check.fail("could not decode preview source")
+        return
+    }
+    let context = CIContext(options: [.cacheIntermediates: false])
+    let measured = Convert.highPercentile(image, fraction: 0.999, context: context)
+    let lifted = measured * Convert.gain(forLift: settings.lift)
+    check.expect(abs((preview?.headroom ?? 0) - lifted) < 1e-9, "preview peak includes lift \(preview?.headroom ?? -1) vs \(lifted)")
+    var brighter = settings
+    brighter.lift = 1.25
+    let again = ConversionQueue.preview(of: hif, settings: brighter, maxSide: 32)
+    let expected = measured * Convert.gain(forLift: brighter.lift)
+    check.expect(abs((again?.headroom ?? 0) - expected) < 1e-9, "preview peak follows lift \(again?.headroom ?? -1) vs \(expected)")
 }
 
 private func writeStampedHIF(_ url: URL) throws {

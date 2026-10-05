@@ -107,11 +107,12 @@ enum ConversionQueue {
     }
 
     /// SDR and HDR pictures from the same lift and tone map as the writer, rendered at `maxSide`.
+    /// `headroom` is that picture’s 99.9th percentile after the lift.
     static func preview(of file: URL, settings: ConversionSettings, maxSide: CGFloat = 960) -> PreviewImages? {
         guard let data = try? Data(contentsOf: file), let image = Convert.decode(data) else { return nil }
         let context = CIContext(options: [.cacheIntermediates: false])
         defer { context.clearCaches() }
-        let headroom = Convert.highPercentile(image, fraction: 0.999, context: context)
+        let headroom = Convert.highPercentile(image, fraction: 0.999, context: context) * Convert.gain(forLift: settings.lift)
         let extent = image.extent.integral
         let longSide = max(extent.width, extent.height)
         guard longSide >= 1,

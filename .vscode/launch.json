@@ -79,6 +79,26 @@
             "target": "hifconvert-check",
             "configuration": "release",
             "preLaunchTask": "swift: Build Release hifconvert-check"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:hifconverter}",
+            "name": "Debug HIFConverter",
+            "target": "HIFConverter",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug HIFConverter"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:hifconverter}",
+            "name": "Release HIFConverter",
+            "target": "HIFConverter",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release HIFConverter"
         }
     ]
 }
