@@ -6,6 +6,23 @@ The original `.HIF` is left unchanged. Output is a sibling `Name.heic`, or a fil
 
 Requires macOS 15 or later and Swift 6.
 
+## Source and build
+
+```sh
+git clone https://github.com/fuzzy01/hifconverter.git
+cd hifconverter
+./Scripts/make-app.sh
+open HIFConverter.app
+```
+
+`make-app.sh` compiles the package, copies the `HIFConverter` binary and icon into `HIFConverter.app`, and ad-hoc signs the bundle. Open that app on the Mac that built it. The same build produces the `hifconvert` command. From the repository, `swift run hifconvert` compiles it if needed and runs it.
+
+Swift 6 comes with the Xcode Command Line Tools. If `swift` is missing:
+
+```sh
+xcode-select --install
+```
+
 ## Run
 
 ```sh
@@ -42,7 +59,7 @@ HEICs written with an earlier lift stay at that brightness until you reconvert t
 
 ## What the HEIC contains
 
-ImageIO decodes the Sony HLG picture. The converter applies `--lift` to that linear picture, tone-maps the SDR base down to white, and keeps the highlights in the gain map. Camera metadata (EXIF, GPS, IPTC, MakerNote) is copied onto the HEIC. EXIF orientation is applied to the pixels, and the HEIC is tagged upright.
+ImageIO decodes the Sony HLG picture. The converter applies `--lift` to that linear picture, tone-maps the SDR base down to white, and keeps the highlights in the gain map. Camera metadata is copied onto the HEIC, including exposure, aperture, ISO, exposure compensation, metering mode, lens, date, GPS, IPTC, and MakerNote. The HIF color-space tag is left off so the HEIC is not marked HLG. EXIF orientation is applied to the pixels, and the HEIC is tagged upright.
 
 A frame that stays within SDR white after the lift is written as a Display P3 HEIC with no gain map. A file ImageIO cannot decode fails with `decoded without HLG headroom`.
 
@@ -56,12 +73,6 @@ Prints `ok` when the conversion checks pass. This package runs those checks as a
 
 ## App
 
-`HIFConverter` is a window on the same converter. Drop HIF files or a folder, or use Open. Clear empties the queue while a conversion is not running. The queue converts one file at a time. Cancel stops after the file already in progress. The preview is a small render of the SDR base and the HDR picture, using the same lift and tone map as the file that will be written.
-
-```sh
-swift build
-./Scripts/make-app.sh
-open HIFConverter.app
-```
+`HIFConverter` is a window on the same converter. Drop HIF files or a folder, or use Open. Clear empties the queue while a conversion is not running. The queue converts one file at a time. Cancel stops after the file already in progress. The preview is a small render of the SDR base and the HDR picture, using the same lift and tone map as the file that will be written. Build and open the app with the steps above.
 
 Settings match the command-line flags: lift, peak, shoulder, quality, and what to do when the HEIC already exists. Output defaults to the folder the HIF is in. Set defaults restores those values. Convert is Command-R. Cancel stops after the file already in progress.
