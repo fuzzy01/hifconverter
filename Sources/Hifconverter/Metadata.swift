@@ -18,6 +18,7 @@ enum Metadata {
             let names = [
                 kCGImagePropertyTIFFMake,
                 kCGImagePropertyTIFFModel,
+                kCGImagePropertyTIFFSoftware,
                 kCGImagePropertyTIFFArtist,
                 kCGImagePropertyTIFFCopyright,
                 kCGImagePropertyTIFFDateTime
@@ -29,11 +30,13 @@ enum Metadata {
             }
         }
         if let exif = dictionary(properties[kCGImagePropertyExifDictionary as String]) {
-            let names = exifNames
-            let copy = exif.filter { names.contains($0.key) }
+            let copy = exif.filter { skippedExif.contains($0.key) == false }
             if copy.isEmpty == false {
                 kept[kCGImagePropertyExifDictionary as String] = copy
             }
+        }
+        if let aux = dictionary(properties[kCGImagePropertyExifAuxDictionary as String]), aux.isEmpty == false {
+            kept[kCGImagePropertyExifAuxDictionary as String] = aux
         }
         if let gps = dictionary(properties[kCGImagePropertyGPSDictionary as String]), gps.isEmpty == false {
             kept[kCGImagePropertyGPSDictionary as String] = gps
@@ -86,6 +89,7 @@ enum Metadata {
         }
         copy(properties[kCGImagePropertyTIFFDictionary as String], dictionary: kCGImagePropertyTIFFDictionary, into: metadata)
         copy(properties[kCGImagePropertyExifDictionary as String], dictionary: kCGImagePropertyExifDictionary, into: metadata)
+        copy(properties[kCGImagePropertyExifAuxDictionary as String], dictionary: kCGImagePropertyExifAuxDictionary, into: metadata)
         copy(properties[kCGImagePropertyGPSDictionary as String], dictionary: kCGImagePropertyGPSDictionary, into: metadata)
         copy(properties[kCGImagePropertyIPTCDictionary as String], dictionary: kCGImagePropertyIPTCDictionary, into: metadata)
         return metadata
@@ -103,11 +107,37 @@ enum Metadata {
         _ = CGImageMetadataSetValueMatchingImageProperty(metadata, dictionary, key as CFString, boxed)
     }
 
-    /// Exposure, aperture, and focal length are EXIF rationals. A plain number is stored as an integer.
+    /// These tags describe the HIF encoding. Copying them would mark the HEIC as HLG
+    /// or give it the source pixel size after the pixels have been turned upright.
+    private static let skippedExif: Set<String> = [
+        kCGImagePropertyExifColorSpace as String,
+        kCGImagePropertyExifPixelXDimension as String,
+        kCGImagePropertyExifPixelYDimension as String,
+        kCGImagePropertyExifComponentsConfiguration as String,
+        kCGImagePropertyExifCompressedBitsPerPixel as String,
+        kCGImagePropertyExifVersion as String,
+        kCGImagePropertyExifFlashPixVersion as String
+    ]
+
+    /// EXIF rationals. A plain number is stored as an integer, which drops the fraction.
     private static let rationalExif: Set<String> = [
         kCGImagePropertyExifExposureTime as String,
         kCGImagePropertyExifFNumber as String,
-        kCGImagePropertyExifFocalLength as String
+        kCGImagePropertyExifFocalLength as String,
+        kCGImagePropertyExifExposureBiasValue as String,
+        kCGImagePropertyExifBrightnessValue as String,
+        kCGImagePropertyExifShutterSpeedValue as String,
+        kCGImagePropertyExifApertureValue as String,
+        kCGImagePropertyExifMaxApertureValue as String,
+        kCGImagePropertyExifSubjectDistance as String,
+        kCGImagePropertyExifFlashEnergy as String,
+        kCGImagePropertyExifDigitalZoomRatio as String,
+        kCGImagePropertyExifAuxFlashCompensation as String
+    ]
+
+    private static let rationalArrayExif: Set<String> = [
+        kCGImagePropertyExifLensSpecification as String,
+        kCGImagePropertyExifAuxLensInfo as String
     ]
 
     private static func metadataValue(_ value: Any, key: String) -> CFTypeRef? {
@@ -119,6 +149,12 @@ enum Metadata {
         }
         if key == kCGImagePropertyExifISOSpeedRatings as String, let first = firstNumber(value) {
             return first
+        }
+        if key == kCGImagePropertyExifFlash as String, let bits = firstNumber(value)?.intValue {
+            return flashStructure(bits)
+        }
+        if rationalArrayExif.contains(key), let items = rationalItems(value) {
+            return items as CFArray
         }
         if let number = value as? NSNumber {
             if rationalExif.contains(key) {
@@ -151,19 +187,49 @@ enum Metadata {
         return "\(sign)\(numerator)/\(denominator)"
     }
 
-    private static let exifNames = [
-        kCGImagePropertyExifDateTimeOriginal,
-        kCGImagePropertyExifOffsetTimeOriginal,
-        kCGImagePropertyExifOffsetTime,
-        kCGImagePropertyExifSubsecTimeOriginal,
-        kCGImagePropertyExifExposureTime,
-        kCGImagePropertyExifFNumber,
-        kCGImagePropertyExifISOSpeedRatings,
-        kCGImagePropertyExifFocalLength,
-        kCGImagePropertyExifLensModel,
-        kCGImagePropertyExifLensMake,
-        kCGImagePropertyExifMakerNote
-    ].map { $0 as String }
+    /// ImageIO stores Flash as a structure. A packed integer is read back as 0.
+    private static func flashStructure(_ bits: Int) -> CFDictionary {
+        let xmlns = "http://ns.adobe.com/exif/1.0/" as CFString
+        func tag(_ name: String, _ value: CFTypeRef) -> CGImageMetadataTag {
+            CGImageMetadataTagCreate(xmlns, "exif" as CFString, name as CFString, .default, value)!
+        }
+        let fields: [String: Any] = [
+            "Fired": tag("Fired", (bits & 1) == 0 ? kCFBooleanFalse : kCFBooleanTrue),
+            "Return": tag("Return", NSNumber(value: (bits >> 1) & 0x3)),
+            "Mode": tag("Mode", NSNumber(value: (bits >> 3) & 0x3)),
+            "Function": tag("Function", (bits & 0x20) == 0 ? kCFBooleanFalse : kCFBooleanTrue),
+            "RedEyeMode": tag("RedEyeMode", (bits & 0x40) == 0 ? kCFBooleanFalse : kCFBooleanTrue)
+        ]
+        return fields as CFDictionary
+    }
+
+    private static func rationalItems(_ value: Any) -> [String]? {
+        let items: [Any]
+        if let array = value as? [Any] {
+            items = array
+        } else if let array = value as? NSArray {
+            items = (0..<array.count).map { array[$0] }
+        } else {
+            return nil
+        }
+        var result: [String] = []
+        for entry in items {
+            if let number = entry as? NSNumber {
+                result.append(rational(number.doubleValue))
+            } else if let text = entry as? String {
+                if text.contains("/") {
+                    result.append(text)
+                } else if let number = Double(text) {
+                    result.append(rational(number))
+                } else {
+                    return nil
+                }
+            } else {
+                return nil
+            }
+        }
+        return result
+    }
 
     private static func stringKeyed(_ raw: Any) -> [String: Any] {
         guard let dictionary = raw as? NSDictionary else { return [:] }
