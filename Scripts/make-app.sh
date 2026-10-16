@@ -1,8 +1,8 @@
 #!/bin/sh
 set -eu
 cd "$(dirname "$0")/.."
-swift build
-bin="$(swift build --show-bin-path)/HIFConverter"
+swift build -c release
+bin="$(swift build -c release --show-bin-path)/HIFConverter"
 app="HIFConverter.app"
 rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
