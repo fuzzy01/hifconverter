@@ -28,7 +28,7 @@ enum Export {
         source: URL,
         to destination: URL? = nil,
         collision: Collision = .fail,
-        shoulder: Shoulder = .standard,
+        shoulder: Shoulder = .matchFrame,
         quality: Double = Encode.defaultQuality,
         peakNits: Double = HLGFormula.defaultPeakNits,
         lift: Double = Convert.defaultLift

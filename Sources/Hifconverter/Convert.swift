@@ -31,7 +31,7 @@ enum Convert {
     /// 1000 cd/m² peak divided by the 203 cd/m² reference white.
     static let nominalHeadroom = 1000.0 / 203.0
     /// Stops added when `--lift` is omitted.
-    static let defaultLift = 0.5
+    static let defaultLift = 0.0
     /// Linear multiplier for `defaultLift`.
     static var exposureGain: Double { gain(forLift: defaultLift) }
 
@@ -41,7 +41,7 @@ enum Convert {
 
     static func picture(
         from data: Data,
-        shoulder: Shoulder = .standard,
+        shoulder: Shoulder = .matchFrame,
         peakNits: Double = HLGFormula.defaultPeakNits,
         lift: Double = defaultLift
     ) throws -> Picture {
@@ -51,7 +51,7 @@ enum Convert {
 
     static func picture(
         from image: CIImage,
-        shoulder: Shoulder = .standard,
+        shoulder: Shoulder = .matchFrame,
         peakNits: Double = HLGFormula.defaultPeakNits,
         lift: Double = defaultLift
     ) throws -> Picture {
@@ -64,7 +64,7 @@ enum Convert {
 
     static func pair(
         from data: Data,
-        shoulder: Shoulder = .standard,
+        shoulder: Shoulder = .matchFrame,
         peakNits: Double = HLGFormula.defaultPeakNits,
         lift: Double = defaultLift
     ) throws -> HDRPair {
@@ -77,7 +77,7 @@ enum Convert {
     /// extended-linear Display P3 is the one conversion.
     static func pair(
         from image: CIImage,
-        shoulder: Shoulder = .standard,
+        shoulder: Shoulder = .matchFrame,
         peakNits: Double = HLGFormula.defaultPeakNits,
         lift: Double = defaultLift
     ) throws -> HDRPair {

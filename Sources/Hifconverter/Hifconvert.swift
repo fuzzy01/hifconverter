@@ -14,8 +14,9 @@ enum Hifconvert {
         hifconvert reads Sony HLG HEIF files and writes a sibling HEIC.
         Files are converted one at a time.
         --lift adds stops after the HLG decode. Default is \(stops). 0 keeps the decoded brightness.
+        --shoulder defaults to match, which uses the frame's measured peak. standard uses the nominal peak.
 
-        usage: hifconvert [--peak-nits 1000] [--lift \(stops)] [--shoulder standard|match] [--quality 0.85]
+        usage: hifconvert [--peak-nits 1000] [--lift \(stops)] [--shoulder match|standard] [--quality 0.85]
                           [--out-dir directory] [--on-collision fail|suffix|overwrite|skip]
                           file-or-folder ...
         """
@@ -85,7 +86,7 @@ enum Hifconvert {
         var help = false
         var peakNits = HLGFormula.defaultPeakNits
         var lift = Convert.defaultLift
-        var shoulder = Shoulder.standard
+        var shoulder = Shoulder.matchFrame
         var quality = Encode.defaultQuality
         var outputDirectory: URL?
         var collision = Collision.fail

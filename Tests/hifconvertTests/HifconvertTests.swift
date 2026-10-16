@@ -69,6 +69,7 @@ private func batchCommand(_ check: Check) throws {
     let converted = Hifconvert.execute(arguments: [
         "hifconvert",
         "--peak-nits", "1000",
+        "--lift", "0.5",
         "--shoulder", "standard",
         "--quality", "0.85",
         "--out-dir", out.path,
@@ -89,7 +90,8 @@ private func batchCommand(_ check: Check) throws {
         let liftedHighlight = highlight(out.appendingPathComponent("DSC0001.heic"), context: context, space: space)
         let plainHighlight = highlight(plain.appendingPathComponent("DSC0001.heic"), context: context, space: space)
         let ratio = plainHighlight == 0 ? 0 : liftedHighlight / plainHighlight
-        check.expect(abs(ratio - Convert.exposureGain) < Convert.exposureGain * 0.2, "lift ratio \(ratio) highlights \(liftedHighlight) \(plainHighlight)")
+        let liftGain = Convert.gain(forLift: 0.5)
+        check.expect(abs(ratio - liftGain) < liftGain * 0.2, "lift ratio \(ratio) highlights \(liftedHighlight) \(plainHighlight)")
     } else {
         check.fail("missing extended linear Display P3")
     }
@@ -230,8 +232,13 @@ private func fileSafetyAndMetadata(_ check: Check) throws {
                  "exported date \(String(describing: exif))")
     let aperture = (exif?[kCGImagePropertyExifFNumber as String] as? NSNumber)?.doubleValue ?? -1
     let exposure = (exif?[kCGImagePropertyExifExposureTime as String] as? NSNumber)?.doubleValue ?? -1
+    let compensation = (exif?[kCGImagePropertyExifExposureBiasValue as String] as? NSNumber)?.doubleValue ?? 999
     check.expect(abs(aperture - 2.8) < 0.001, "exported aperture \(aperture)")
     check.expect(abs(exposure - 0.01) < 0.00001, "exported exposure \(exposure)")
+    check.expect(abs(compensation - (-0.7)) < 0.0001, "exported EV compensation \(compensation)")
+    check.expect(integer(exif?[kCGImagePropertyExifMeteringMode as String]) == 3, "exported metering \(String(describing: exif?[kCGImagePropertyExifMeteringMode as String]))")
+    check.expect(integer(exif?[kCGImagePropertyExifFlash as String]) == 16, "exported flash \(String(describing: exif?[kCGImagePropertyExifFlash as String]))")
+    check.expect(exif?[kCGImagePropertyExifColorSpace as String] == nil, "exported color space \(String(describing: exif?[kCGImagePropertyExifColorSpace as String]))")
     let latitude = (gps?[kCGImagePropertyGPSLatitude as String] as? NSNumber)?.doubleValue ?? -1
     check.expect(abs(latitude - 35.6895) < 0.0001, "exported latitude \(latitude)")
     check.expect((gps?[kCGImagePropertyGPSLatitudeRef as String] as? String) == "N", "latitude ref")
@@ -262,7 +269,11 @@ private func fixtureProperties() -> [String: Any] {
             kCGImagePropertyExifDateTimeOriginal as String: "2024:06:15 10:30:00",
             kCGImagePropertyExifOffsetTimeOriginal as String: "+09:00",
             kCGImagePropertyExifFNumber as String: 2.8,
-            kCGImagePropertyExifExposureTime as String: 0.01
+            kCGImagePropertyExifExposureTime as String: 0.01,
+            kCGImagePropertyExifExposureBiasValue as String: -0.7,
+            kCGImagePropertyExifMeteringMode as String: 3,
+            kCGImagePropertyExifFlash as String: 16,
+            kCGImagePropertyExifColorSpace as String: 65535
         ],
         kCGImagePropertyGPSDictionary as String: [
             kCGImagePropertyGPSLatitude as String: 35.6895,

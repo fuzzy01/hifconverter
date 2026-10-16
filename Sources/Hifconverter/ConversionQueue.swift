@@ -5,7 +5,7 @@ import ImageIO
 struct ConversionSettings: Equatable, Sendable {
     var peakNits = HLGFormula.defaultPeakNits
     var lift = Convert.defaultLift
-    var shoulder = Shoulder.standard
+    var shoulder = Shoulder.matchFrame
     var quality = Encode.defaultQuality
     var collision = Collision.fail
     var outputDirectory: URL?
