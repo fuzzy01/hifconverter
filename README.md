@@ -37,7 +37,28 @@ Swift 6 comes with the Xcode Command Line Tools. If `swift` is missing:
 xcode-select --install
 ```
 
-## Run
+## Using the app
+
+HIF Converter is the same conversion as `hifconvert`, in one window. Drop `.HIF` files or a folder onto the queue, or click Open. A folder is scanned recursively and only `.HIF` files are added. The original file is left unchanged.
+
+Each row shows the file name, the pixel size, and the status. Select a row to preview it. The preview is a small SDR picture and, when the frame has highlights above white, the HDR picture beside it. Both use the lift and tone map that Convert will write. The row’s peak is the 99.9th percentile of that lifted picture. Changing Lift, Peak, or Shoulder reloads the preview.
+
+The top of the queue has Open, Clear, Convert, and Cancel. Clear empties the queue and the counts, and is available only while a conversion is not running. Convert is Command-R. The queue writes one file at a time. Cancel (Escape) stops after the file already in progress. The status line counts files written, failed, and skipped.
+
+The side panel is the conversion settings, matching the command-line flags:
+
+- **Lift, stops.** `0` keeps the decoded brightness. A positive value brightens every tone. A negative value darkens.
+- **Peak, cd/m².** Nominal HLG peak for the content-headroom tag. The default is 1000. Reference white stays 203 cd/m².
+- **Shoulder.** Match frame uses that photo’s measured peak, clamped between 1.5 and the nominal peak. Standard uses the nominal peak for every frame. The lift scales that headroom.
+- **Quality.** HEIC quality from 0.1 through 1. The default is 0.85.
+- **If the HEIC exists.** Fail leaves the existing file and reports it. Add HDR suffix writes `Name HDR.heic`, then `Name HDR 2.heic`. Overwrite replaces an existing `.heic`. Skip leaves it and counts it as skipped.
+- **Output.** Choose a folder, or Same folder to write `Name.heic` next to each HIF. A missing folder is created.
+
+The window restores these settings the next time it opens. Set defaults puts back lift 0, match frame, peak 1000, quality 0.85, fail when the HEIC exists, and output next to each HIF, and remembers those. A HEIC written earlier stays at that brightness until you convert it again.
+
+On a wide window the queue is on the left and the preview and settings are on the right. On a narrow window the queue is on top.
+
+## Using the command line utility
 
 ```sh
 swift run hifconvert photo.HIF
@@ -84,9 +105,3 @@ swift run hifconvert-check
 ```
 
 Prints `ok` when the conversion checks pass. This package runs those checks as an executable because the Command Line Tools do not include XCTest.
-
-## App
-
-`HIFConverter` is a window on the same converter. Drop HIF files or a folder, or use Open. Clear empties the queue while a conversion is not running. The queue converts one file at a time. Cancel stops after the file already in progress. The preview is a small render of the SDR base and the HDR picture, using the same lift and tone map as the file that will be written. Build and open the app with the steps above.
-
-Settings match the command-line flags: lift, peak, shoulder, quality, and what to do when the HEIC already exists. Output defaults to the folder the HIF is in. The window restores the last settings on launch. Set defaults puts back the built-in values and remembers those. Convert is Command-R. Cancel stops after the file already in progress.
