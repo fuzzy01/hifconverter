@@ -17,6 +17,14 @@ open HIFConverter.app
 
 `make-app.sh` compiles the package, copies the `HIFConverter` binary and icon into `HIFConverter.app`, and ad-hoc signs the bundle. Open that app on the Mac that built it. The same build produces the `hifconvert` command. From the repository, `swift run hifconvert` compiles it if needed and runs it.
 
+`./Scripts/make-dmg.sh` runs that build and writes `HIFConverter.dmg`. Open the image and drag HIF Converter onto the Applications alias. A downloaded copy is marked as quarantined. After it is in `/Applications`, this clears that flag:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/HIFConverter.app
+```
+
+The bundle name on disk is `HIFConverter.app`. Building with `./Scripts/make-app.sh` on the same Mac never sets the flag.
+
 Swift 6 comes with the Xcode Command Line Tools. If `swift` is missing:
 
 ```sh
@@ -75,4 +83,4 @@ Prints `ok` when the conversion checks pass. This package runs those checks as a
 
 `HIFConverter` is a window on the same converter. Drop HIF files or a folder, or use Open. Clear empties the queue while a conversion is not running. The queue converts one file at a time. Cancel stops after the file already in progress. The preview is a small render of the SDR base and the HDR picture, using the same lift and tone map as the file that will be written. Build and open the app with the steps above.
 
-Settings match the command-line flags: lift, peak, shoulder, quality, and what to do when the HEIC already exists. Output defaults to the folder the HIF is in. Set defaults restores those values. Convert is Command-R. Cancel stops after the file already in progress.
+Settings match the command-line flags: lift, peak, shoulder, quality, and what to do when the HEIC already exists. Output defaults to the folder the HIF is in. The window restores the last settings on launch. Set defaults puts back the built-in values and remembers those. Convert is Command-R. Cancel stops after the file already in progress.
