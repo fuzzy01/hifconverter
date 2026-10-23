@@ -4,7 +4,19 @@ Converts Sony HLG `.HIF` stills into Display P3 HEIC files that Preview and Phot
 
 The original `.HIF` is left unchanged. Output is a sibling `Name.heic`, or a file in a directory you choose. A destination ending in `.hif` is refused.
 
-Requires macOS 15 or later and Swift 6.
+Requires macOS 15 or later. Building from source also needs Swift 6.
+
+## Install
+
+Download [HIFConverter.dmg](https://github.com/fuzzy01/hifconverter/releases/latest/download/HIFConverter.dmg) from the GitHub releases. Open the image and drag HIF Converter onto the Applications alias.
+
+A download is marked as quarantined. After the app is in `/Applications`, clear that flag:
+
+```sh
+xattr -dr com.apple.quarantine /Applications/HIFConverter.app
+```
+
+The bundle name on disk is `HIFConverter.app`. The image is the Apple silicon build.
 
 ## Source and build
 
@@ -17,13 +29,7 @@ open HIFConverter.app
 
 `make-app.sh` compiles the package, copies the `HIFConverter` binary and icon into `HIFConverter.app`, and ad-hoc signs the bundle. Open that app on the Mac that built it. The same build produces the `hifconvert` command. From the repository, `swift run hifconvert` compiles it if needed and runs it.
 
-`./Scripts/make-dmg.sh` runs that build and writes `HIFConverter.dmg`. Open the image and drag HIF Converter onto the Applications alias. A downloaded copy is marked as quarantined. After it is in `/Applications`, this clears that flag:
-
-```sh
-xattr -dr com.apple.quarantine /Applications/HIFConverter.app
-```
-
-The bundle name on disk is `HIFConverter.app`. Building with `./Scripts/make-app.sh` on the same Mac never sets the flag.
+`./Scripts/make-dmg.sh` runs that build and writes `HIFConverter.dmg`, the image attached to the GitHub release. Building with `./Scripts/make-app.sh` on the same Mac never sets the quarantine flag.
 
 Swift 6 comes with the Xcode Command Line Tools. If `swift` is missing:
 
