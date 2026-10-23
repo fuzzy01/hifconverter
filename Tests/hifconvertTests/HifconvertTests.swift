@@ -20,6 +20,7 @@ struct HifconvertCheck {
             try stillWithoutHeadroom(check)
             try batchCommand(check)
             try appQueue(check)
+            try settingsArchive(check)
         } catch {
             check.fail("\(error)")
         }
@@ -112,6 +113,44 @@ private func batchCommand(_ check: Check) throws {
     check.expect(suffixed.status == 0, "suffix status \(suffixed.status) \(suffixed.stdout)")
     check.expect(suffixed.stdout.contains("DSC0001 HDR.heic"), suffixed.stdout)
     check.expect(Encode.hasISOGainMap(at: out.appendingPathComponent("DSC0001 HDR.heic")), "suffix gain map")
+}
+
+private func settingsArchive(_ check: Check) throws {
+    var settings = ConversionSettings()
+    settings.lift = -0.3
+    settings.peakNits = 800
+    settings.shoulder = .standard
+    settings.quality = 0.6
+    settings.collision = .overwriteHEIC
+    settings.outputDirectory = URL(fileURLWithPath: "/tmp/hif-settings-out")
+    let restored = ConversionSettings(propertyList: settings.propertyList())
+    check.expect(restored == settings, "settings round trip \(restored) vs \(settings)")
+
+    settings.outputDirectory = nil
+    let cleared = ConversionSettings(propertyList: settings.propertyList())
+    check.expect(cleared.outputDirectory == nil, "nil output \(String(describing: cleared.outputDirectory))")
+    check.expect(cleared.lift == -0.3, "lift kept \(cleared.lift)")
+
+    let partial = ConversionSettings(propertyList: [
+        "quality": 4,
+        "shoulder": "portrait",
+        "peakNits": NSNumber(value: 640),
+        "collision": "skip",
+        "outputDirectory": "/tmp/hif-settings-missing"
+    ])
+    check.expect(partial.quality == Encode.defaultQuality, "bad quality \(partial.quality)")
+    check.expect(partial.shoulder == .matchFrame, "unknown shoulder \(partial.shoulder)")
+    check.expect(partial.lift == Convert.defaultLift, "missing lift \(partial.lift)")
+    check.expect(partial.peakNits == 640, "peak kept \(partial.peakNits)")
+    check.expect(partial.collision == .skip, "collision kept \(partial.collision)")
+    check.expect(partial.outputDirectory?.path == "/tmp/hif-settings-missing", "missing path \(String(describing: partial.outputDirectory))")
+
+    let file = FileManager.default.temporaryDirectory.appendingPathComponent("hif-settings-file-\(UUID().uuidString)")
+    try Data("x".utf8).write(to: file)
+    defer { try? FileManager.default.removeItem(at: file) }
+    let dropped = ConversionSettings(propertyList: ["outputDirectory": file.path, "lift": 1.25])
+    check.expect(dropped.outputDirectory == nil, "file path dropped \(String(describing: dropped.outputDirectory))")
+    check.expect(dropped.lift == 1.25, "lift kept beside bad path \(dropped.lift)")
 }
 
 private func appQueue(_ check: Check) throws {

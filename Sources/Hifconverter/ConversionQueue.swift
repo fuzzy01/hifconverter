@@ -9,6 +9,101 @@ struct ConversionSettings: Equatable, Sendable {
     var quality = Encode.defaultQuality
     var collision = Collision.fail
     var outputDirectory: URL?
+
+    /// Property list stored by the app. An omitted output key means next to each HIF.
+    func propertyList() -> [String: Any] {
+        var list: [String: Any] = [
+            "lift": lift,
+            "peakNits": peakNits,
+            "shoulder": Self.name(for: shoulder),
+            "quality": quality,
+            "collision": Self.name(for: collision)
+        ]
+        if let outputDirectory {
+            list["outputDirectory"] = outputDirectory.path
+        }
+        return list
+    }
+
+    init() {}
+
+    /// Missing and invalid fields keep the built-in values. A path that exists and is not a directory is dropped.
+    init(propertyList: [String: Any]) {
+        self.init()
+        if let lift = Self.finiteNumber(propertyList["lift"]) {
+            self.lift = lift
+        }
+        if let peakNits = Self.finiteNumber(propertyList["peakNits"]), peakNits > 0 {
+            self.peakNits = peakNits
+        }
+        if let name = propertyList["shoulder"] as? String, let shoulder = Self.shoulder(named: name) {
+            self.shoulder = shoulder
+        }
+        if let quality = Self.finiteNumber(propertyList["quality"]), quality > 0, quality <= 1 {
+            self.quality = quality
+        }
+        if let name = propertyList["collision"] as? String, let collision = Self.collision(named: name) {
+            self.collision = collision
+        }
+        if let path = propertyList["outputDirectory"] as? String, path.isEmpty == false {
+            outputDirectory = Self.outputDirectory(at: path)
+        }
+    }
+
+    private static func finiteNumber(_ value: Any?) -> Double? {
+        let number: Double?
+        if let value = value as? Double {
+            number = value
+        } else if let value = value as? NSNumber {
+            number = value.doubleValue
+        } else {
+            number = nil
+        }
+        guard let number, number.isFinite else { return nil }
+        return number
+    }
+
+    private static func outputDirectory(at path: String) -> URL? {
+        var isDirectory: ObjCBool = false
+        if FileManager.default.fileExists(atPath: path, isDirectory: &isDirectory) {
+            guard isDirectory.boolValue else { return nil }
+        }
+        return URL(fileURLWithPath: path)
+    }
+
+    private static func name(for shoulder: Shoulder) -> String {
+        switch shoulder {
+        case .standard: "standard"
+        case .matchFrame: "match"
+        }
+    }
+
+    private static func shoulder(named name: String) -> Shoulder? {
+        switch name {
+        case "standard": .standard
+        case "match": .matchFrame
+        default: nil
+        }
+    }
+
+    private static func name(for collision: Collision) -> String {
+        switch collision {
+        case .fail: "fail"
+        case .suffix: "suffix"
+        case .overwriteHEIC: "overwrite"
+        case .skip: "skip"
+        }
+    }
+
+    private static func collision(named name: String) -> Collision? {
+        switch name {
+        case "fail": .fail
+        case "suffix": .suffix
+        case "overwrite": .overwriteHEIC
+        case "skip": .skip
+        default: nil
+        }
+    }
 }
 
 enum FileStatus: Equatable, Sendable {

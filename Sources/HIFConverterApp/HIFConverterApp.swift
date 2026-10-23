@@ -16,6 +16,21 @@ struct HIFConverterApp: App {
     }
 }
 
+enum SettingsStore {
+    static let key = "conversionSettings"
+
+    static func load() -> ConversionSettings {
+        guard let stored = UserDefaults.standard.dictionary(forKey: key) else {
+            return ConversionSettings()
+        }
+        return ConversionSettings(propertyList: stored)
+    }
+
+    static func save(_ settings: ConversionSettings) {
+        UserDefaults.standard.set(settings.propertyList(), forKey: key)
+    }
+}
+
 @MainActor
 @Observable
 final class ConverterModel {
@@ -23,7 +38,9 @@ final class ConverterModel {
 
     var files: [QueueFile] = []
     var dropTargeted = false
-    var settings = ConversionSettings()
+    var settings = SettingsStore.load() {
+        didSet { SettingsStore.save(settings) }
+    }
     var running = false
     var stopped = false
     var writtenCount = 0
